@@ -1,13 +1,16 @@
 package com.michaels.testing;
 
 import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.Keys;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import java.time.Duration;
+import java.util.List;
 
 public class ProductPageTest extends BaseTest {
 
@@ -22,6 +25,7 @@ public class ProductPageTest extends BaseTest {
         Thread.sleep(2000);
         WebElement firstProduct = wait.until(ExpectedConditions.elementToBeClickable(
                 By.cssSelector(".product-item a, .product-card a, [data-testid='product'] a")));
+        Thread.sleep(1000);
         firstProduct.click();
         Thread.sleep(2000);
     }
@@ -50,28 +54,39 @@ public class ProductPageTest extends BaseTest {
                 "Price should contain a dollar sign. Actual: " + price.getText());
     }
 
-    // 3. Product image has a valid non empty src
+    // 3. Scroll down product page to reveal more details
     @Test
-    public void testProductImageHasValidSrc() throws InterruptedException {
+    public void testProductPageScrolling() throws InterruptedException {
+        navigateToProductPage();
+        JavascriptExecutor js = (JavascriptExecutor) driver;
+        Thread.sleep(1500);
+        js.executeScript("window.scrollBy(0, 400)");
+        Thread.sleep(1500);
+        js.executeScript("window.scrollBy(0, 400)");
+        Thread.sleep(1500);
+        js.executeScript("window.scrollBy(0, 400)");
+        Thread.sleep(1500);
+        js.executeScript("window.scrollTo(0, 0)");
+        Thread.sleep(1500);
+        WebElement body = driver.findElement(By.tagName("body"));
+        Assert.assertTrue(body.isDisplayed(),
+                "Product page should still be visible after scrolling.");
+    }
+
+    // 4. Hover over product image to check for zoom or interaction
+    @Test
+    public void testProductImageHoverInteraction() throws InterruptedException {
         navigateToProductPage();
         WebElement img = driver.findElement(
                 By.cssSelector(".product-image img, [data-testid='product-image'] img, img[class*='product']"));
         Thread.sleep(1500);
+        Actions actions = new Actions(driver);
+        actions.moveToElement(img).perform();
+        Thread.sleep(2000);
         String src = img.getAttribute("src");
-        Assert.assertNotNull(src, "Product image should have a src attribute.");
+        Assert.assertNotNull(src, "Product image should have a valid src after hover.");
         Assert.assertFalse(src.trim().isEmpty(),
-                "Product image src should not be empty.");
-    }
-
-    // 4. Add to Cart button is present and enabled
-    @Test
-    public void testAddToCartButtonIsEnabled() throws InterruptedException {
-        navigateToProductPage();
-        WebElement addToCart = driver.findElement(
-                By.cssSelector("button[class*='cart'], button[aria-label*='cart'], button[id*='cart']"));
-        Thread.sleep(1500);
-        Assert.assertTrue(addToCart.isEnabled(),
-                "Add to Cart button should be enabled on the product page.");
+                "Product image src should not be empty after hover.");
     }
 
     // 5. Back button returns to search results

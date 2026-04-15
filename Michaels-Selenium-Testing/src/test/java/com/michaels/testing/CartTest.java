@@ -2,6 +2,7 @@ package com.michaels.testing;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.Cookie;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
@@ -26,13 +27,18 @@ public class CartTest extends BaseTest {
                 "Clicking cart icon should navigate to the cart page.");
     }
 
-    // 2. Empty cart displays a relevant message
+    // 2. Empty cart displays a relevant message and scrolls
     @Test
-    public void testEmptyCartMessageDisplayed() throws InterruptedException {
+    public void testEmptyCartMessageAndScroll() throws InterruptedException {
         driver.get("https://www.michaels.com/cart");
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
         wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("body")));
         Thread.sleep(2000);
+        JavascriptExecutor js = (JavascriptExecutor) driver;
+        js.executeScript("window.scrollBy(0, 400)");
+        Thread.sleep(1500);
+        js.executeScript("window.scrollTo(0, 0)");
+        Thread.sleep(1500);
         String bodyText = driver.findElement(By.tagName("body")).getText().toLowerCase();
         Assert.assertTrue(
                 bodyText.contains("empty") || bodyText.contains("no items") || bodyText.contains("cart"),
