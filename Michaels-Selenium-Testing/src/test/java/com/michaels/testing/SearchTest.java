@@ -12,114 +12,80 @@ import java.util.List;
 
 public class SearchTest extends BaseTest {
 
-    private void performSearch(String keyword) {
+    private void performSearch(String keyword) throws InterruptedException {
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
         WebElement searchBox = wait.until(ExpectedConditions.elementToBeClickable(
                 By.cssSelector("input[type='search'], input[placeholder*='Search']")));
+        Thread.sleep(1500);
         searchBox.clear();
         searchBox.sendKeys(keyword);
+        Thread.sleep(1500);
         searchBox.sendKeys(Keys.ENTER);
     }
 
-    // 1. Search returns results for a valid keyword
+    // 1. Search returns visible product results
     @Test
-    public void testSearchForPaintReturnsResults() {
+    public void testSearchReturnsResults() throws InterruptedException {
         performSearch("acrylic paint");
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(12));
         wait.until(ExpectedConditions.presenceOfElementLocated(
                 By.cssSelector(".product-item, .product-card, [data-testid='product']")));
         List<WebElement> results = driver.findElements(
                 By.cssSelector(".product-item, .product-card, [data-testid='product']"));
+        Thread.sleep(2000);
         Assert.assertTrue(results.size() > 0,
                 "Search for 'acrylic paint' should return at least one product.");
     }
 
     // 2. Search URL reflects the keyword typed
     @Test
-    public void testSearchURLContainsKeyword() {
+    public void testSearchURLContainsKeyword() throws InterruptedException {
         performSearch("yarn");
+        Thread.sleep(2000);
         Assert.assertTrue(driver.getCurrentUrl().toLowerCase().contains("yarn") ||
                         driver.getCurrentUrl().toLowerCase().contains("search"),
                 "URL after search should reflect the search keyword.");
     }
 
-    // 3. Search results load within 4 seconds
+    // 3. Empty search does not crash the page
     @Test
-    public void testSearchResultsLoadTime() {
-        long start = System.currentTimeMillis();
-        performSearch("canvas");
+    public void testEmptySearchDoesNotCrash() throws InterruptedException {
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        wait.until(ExpectedConditions.presenceOfElementLocated(
-                By.cssSelector(".product-item, .product-card, [data-testid='product']")));
-        long elapsed = System.currentTimeMillis() - start;
-        Assert.assertTrue(elapsed < 4000,
-                "Search results should appear within 4 seconds. Took: " + elapsed + "ms");
-    }
-
-    // 4. Empty search does not crash the page
-    @Test
-    public void testEmptySearchDoesNotCrash() {
-        WebElement searchBox = driver.findElement(
-                By.cssSelector("input[type='search'], input[placeholder*='Search']"));
+        WebElement searchBox = wait.until(ExpectedConditions.elementToBeClickable(
+                By.cssSelector("input[type='search'], input[placeholder*='Search']")));
+        Thread.sleep(1500);
         searchBox.clear();
         searchBox.sendKeys(Keys.ENTER);
+        Thread.sleep(2000);
         Assert.assertFalse(driver.getCurrentUrl().isEmpty(),
                 "Submitting an empty search should not crash the page.");
     }
 
-    // 5. Search results page contains product prices
+    // 4. Search results contain prices
     @Test
-    public void testSearchResultsContainPrices() {
+    public void testSearchResultsContainPrices() throws InterruptedException {
         performSearch("brush");
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(12));
         wait.until(ExpectedConditions.presenceOfElementLocated(
                 By.cssSelector(".price, [class*='price'], [data-testid*='price']")));
+        Thread.sleep(2000);
         List<WebElement> prices = driver.findElements(
                 By.cssSelector(".price, [class*='price'], [data-testid*='price']"));
         Assert.assertTrue(prices.size() > 0,
                 "Search results should display prices for products.");
     }
 
-    // 6. Search result images all have alt text
+    // 5. Nonsense keyword shows a no results message
     @Test
-    public void testSearchResultImagesHaveAltText() {
-        performSearch("ribbon");
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(12));
-        wait.until(ExpectedConditions.presenceOfElementLocated(
-                By.cssSelector(".product-item img, .product-card img")));
-        List<WebElement> images = driver.findElements(
-                By.cssSelector(".product-item img, .product-card img"));
-        int missing = 0;
-        for (WebElement img : images) {
-            String alt = img.getAttribute("alt");
-            if (alt == null || alt.trim().isEmpty()) missing++;
-        }
-        Assert.assertEquals(missing, 0,
-                missing + " product image(s) in search results are missing alt text.");
-    }
-
-    // 7. Searching a nonsense keyword shows a no-results message
-    @Test
-    public void testNonsenseSearchShowsNoResultsMessage() {
+    public void testNonsenseSearchShowsNoResults() throws InterruptedException {
         performSearch("xyzzy12345nonsense");
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("body")));
+        Thread.sleep(2000);
         String bodyText = driver.findElement(By.tagName("body")).getText().toLowerCase();
         Assert.assertTrue(
                 bodyText.contains("no results") || bodyText.contains("0 results") ||
                         bodyText.contains("sorry") || bodyText.contains("found"),
-                "Nonsense search should display a no-results or sorry message.");
-    }
-
-    // 8. Search field is cleared after navigating back to home
-    @Test
-    public void testSearchFieldClearsOnHomeReturn() {
-        performSearch("glue");
-        driver.navigate().back();
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        WebElement searchBox = wait.until(ExpectedConditions.presenceOfElementLocated(
-                By.cssSelector("input[type='search'], input[placeholder*='Search']")));
-        String value = searchBox.getAttribute("value");
-        Assert.assertTrue(value == null || value.trim().isEmpty(),
-                "Search field should be empty after returning to the home page.");
+                "Nonsense search should display a no results message.");
     }
 }

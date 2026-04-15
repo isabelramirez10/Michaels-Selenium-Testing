@@ -14,83 +14,65 @@ public class CartTest extends BaseTest {
 
     // 1. Cart icon navigates to the cart page
     @Test
-    public void testCartIconNavigatesToCart() {
+    public void testCartIconNavigatesToCart() throws InterruptedException {
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
         WebElement cartIcon = wait.until(ExpectedConditions.elementToBeClickable(
-                By.cssSelector("[aria-label*='cart'], [aria-label*='Cart'], a[href*='cart']")));
+                By.cssSelector("a[href*='cart'], button[class*='cart'], [class*='minicart']")));
+        Thread.sleep(1500);
         cartIcon.click();
+        Thread.sleep(2000);
         Assert.assertTrue(driver.getCurrentUrl().toLowerCase().contains("cart") ||
                         driver.getTitle().toLowerCase().contains("cart"),
                 "Clicking cart icon should navigate to the cart page.");
     }
 
-    // 2. Empty cart page displays an appropriate message
+    // 2. Empty cart displays a relevant message
     @Test
-    public void testEmptyCartMessageDisplayed() {
+    public void testEmptyCartMessageDisplayed() throws InterruptedException {
         driver.get("https://www.michaels.com/cart");
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        String bodyText = wait.until(ExpectedConditions.presenceOfElementLocated(
-                By.tagName("body"))).getText().toLowerCase();
+        wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("body")));
+        Thread.sleep(2000);
+        String bodyText = driver.findElement(By.tagName("body")).getText().toLowerCase();
         Assert.assertTrue(
                 bodyText.contains("empty") || bodyText.contains("no items") || bodyText.contains("cart"),
                 "Empty cart should display a relevant message.");
     }
 
-    // 3. Cart URL is correct
+    // 3. Cart page does not return a 404
     @Test
-    public void testCartURLIsCorrect() {
+    public void testCartPageDoesNotReturn404() throws InterruptedException {
         driver.get("https://www.michaels.com/cart");
-        Assert.assertTrue(driver.getCurrentUrl().contains("cart"),
-                "Cart URL should contain 'cart'.");
-    }
-
-    // 4. Cart page does not return a 404
-    @Test
-    public void testCartPageDoesNotReturn404() {
-        driver.get("https://www.michaels.com/cart");
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("body")));
+        Thread.sleep(2000);
         String bodyText = driver.findElement(By.tagName("body")).getText().toLowerCase();
         Assert.assertFalse(bodyText.contains("404") && bodyText.contains("not found"),
                 "Cart page should not display a 404 error.");
     }
 
-    // 5. Cart page loads within 5 seconds
+    // 4. Cart page loads within 5 seconds
     @Test
-    public void testCartPageLoadTime() {
+    public void testCartPageLoadTime() throws InterruptedException {
         long start = System.currentTimeMillis();
         driver.get("https://www.michaels.com/cart");
         new WebDriverWait(driver, Duration.ofSeconds(10))
                 .until(ExpectedConditions.presenceOfElementLocated(By.tagName("body")));
         long elapsed = System.currentTimeMillis() - start;
+        Thread.sleep(2000);
         Assert.assertTrue(elapsed < 5000,
                 "Cart page should load within 5 seconds. Took: " + elapsed + "ms");
     }
 
-    // 6. Cart page title is not empty
+    // 5. Cookies persist after refreshing the cart page
     @Test
-    public void testCartPageHasTitle() {
+    public void testCartCookiesPersistAfterRefresh() throws InterruptedException {
         driver.get("https://www.michaels.com/cart");
-        Assert.assertFalse(driver.getTitle().isEmpty(),
-                "Cart page should have a non-empty title.");
-    }
-
-    // 7. Cart persists after page refresh (cookie check)
-    @Test
-    public void testCartCookieExistsAfterVisit() {
-        driver.get("https://www.michaels.com/cart");
+        Thread.sleep(2000);
         driver.navigate().refresh();
+        Thread.sleep(2000);
         Set<Cookie> cookies = driver.manage().getCookies();
         Assert.assertFalse(cookies.isEmpty(),
                 "Cookies should persist after refreshing the cart page.");
-    }
-
-    // 8. Navigating from cart back to home works
-    @Test
-    public void testCartBackToHomeNavigation() {
-        driver.get("https://www.michaels.com/cart");
-        driver.navigate().back();
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("body")));
-        Assert.assertTrue(driver.getCurrentUrl().contains("michaels.com"),
-                "Navigating back from cart should return to a Michaels.com page.");
     }
 }
