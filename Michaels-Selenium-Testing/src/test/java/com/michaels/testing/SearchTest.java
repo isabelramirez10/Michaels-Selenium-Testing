@@ -1,8 +1,10 @@
 package com.michaels.testing;
 
 import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.Keys;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.testng.Assert;
@@ -21,30 +23,51 @@ public class SearchTest extends BaseTest {
         searchBox.sendKeys(keyword);
         Thread.sleep(1500);
         searchBox.sendKeys(Keys.ENTER);
+        Thread.sleep(2000);
     }
 
-    // 1. Search returns visible product results
+    // 1. Search returns visible product results and scrolls through them
     @Test
-    public void testSearchReturnsResults() throws InterruptedException {
+    public void testSearchReturnsResultsAndScrolls() throws InterruptedException {
         performSearch("acrylic paint");
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(12));
         wait.until(ExpectedConditions.presenceOfElementLocated(
                 By.cssSelector(".product-item, .product-card, [data-testid='product']")));
+        Thread.sleep(1500);
+        JavascriptExecutor js = (JavascriptExecutor) driver;
+        js.executeScript("window.scrollBy(0, 500)");
+        Thread.sleep(1500);
+        js.executeScript("window.scrollBy(0, 500)");
+        Thread.sleep(1500);
+        js.executeScript("window.scrollTo(0, 0)");
+        Thread.sleep(1500);
         List<WebElement> results = driver.findElements(
                 By.cssSelector(".product-item, .product-card, [data-testid='product']"));
-        Thread.sleep(2000);
         Assert.assertTrue(results.size() > 0,
                 "Search for 'acrylic paint' should return at least one product.");
     }
 
-    // 2. Search URL reflects the keyword typed
+    // 2. Apply a filter on search results
     @Test
-    public void testSearchURLContainsKeyword() throws InterruptedException {
-        performSearch("yarn");
-        Thread.sleep(2000);
-        Assert.assertTrue(driver.getCurrentUrl().toLowerCase().contains("yarn") ||
-                        driver.getCurrentUrl().toLowerCase().contains("search"),
-                "URL after search should reflect the search keyword.");
+    public void testSearchFilterIsClickable() throws InterruptedException {
+        performSearch("canvas");
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(12));
+        wait.until(ExpectedConditions.presenceOfElementLocated(
+                By.cssSelector(".product-item, .product-card, [data-testid='product']")));
+        Thread.sleep(1500);
+
+        // Look for a filter option and click it
+        List<WebElement> filters = driver.findElements(
+                By.cssSelector("[class*='filter'], [class*='facet'], [id*='filter'], [class*='refine']"));
+        if (filters.size() > 0) {
+            Thread.sleep(1000);
+            filters.get(0).click();
+            Thread.sleep(2000);
+        }
+
+        String url = driver.getCurrentUrl();
+        Assert.assertTrue(url.contains("canvas") || url.contains("search"),
+                "After applying a filter the page should remain on search results.");
     }
 
     // 3. Empty search does not crash the page
@@ -61,14 +84,24 @@ public class SearchTest extends BaseTest {
                 "Submitting an empty search should not crash the page.");
     }
 
-    // 4. Search results contain prices
+    // 4. Search results contain prices and hover over first product
     @Test
-    public void testSearchResultsContainPrices() throws InterruptedException {
+    public void testSearchResultsHoverOverProduct() throws InterruptedException {
         performSearch("brush");
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(12));
         wait.until(ExpectedConditions.presenceOfElementLocated(
-                By.cssSelector(".price, [class*='price'], [data-testid*='price']")));
-        Thread.sleep(2000);
+                By.cssSelector(".product-item, .product-card, [data-testid='product']")));
+        Thread.sleep(1500);
+
+        // Hover over the first product card
+        List<WebElement> products = driver.findElements(
+                By.cssSelector(".product-item, .product-card, [data-testid='product']"));
+        if (products.size() > 0) {
+            Actions actions = new Actions(driver);
+            actions.moveToElement(products.get(0)).perform();
+            Thread.sleep(2000);
+        }
+
         List<WebElement> prices = driver.findElements(
                 By.cssSelector(".price, [class*='price'], [data-testid*='price']"));
         Assert.assertTrue(prices.size() > 0,

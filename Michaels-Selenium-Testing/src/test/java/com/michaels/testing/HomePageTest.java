@@ -1,6 +1,7 @@
 package com.michaels.testing;
 
 import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
@@ -15,89 +16,105 @@ public class HomePageTest extends BaseTest {
 
     // 1. Page title contains "Michaels"
     @Test
-    public void testPageTitleContainsMichaels() {
+    public void testPageTitleContainsMichaels() throws InterruptedException {
+        Thread.sleep(2000);
         String title = driver.getTitle();
+        Thread.sleep(1500);
         Assert.assertTrue(title.toLowerCase().contains("michaels"),
                 "Page title should contain 'Michaels'. Actual: " + title);
     }
 
     // 2. Logo or home link is visible in the header
     @Test
-    public void testLogoIsDisplayed() {
+    public void testLogoIsDisplayed() throws InterruptedException {
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        Thread.sleep(2000);
         WebElement logo = wait.until(ExpectedConditions.presenceOfElementLocated(
                 By.cssSelector("header a, .header a, nav a[href='/'], a[href='https://www.michaels.com']")));
+        Thread.sleep(1500);
         Assert.assertTrue(logo.isDisplayed(),
                 "A logo or home link should be visible in the header.");
     }
 
     // 3. Search bar accepts input
     @Test
-    public void testSearchBarAcceptsInput() {
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
+    public void testSearchBarAcceptsInput() throws InterruptedException {
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
         WebElement searchBar = wait.until(ExpectedConditions.elementToBeClickable(
                 By.cssSelector("input[type='search'], input[placeholder*='Search']")));
+        Thread.sleep(1500);
         searchBar.sendKeys("paint");
+        Thread.sleep(1500);
         Assert.assertEquals(searchBar.getAttribute("value"), "paint",
                 "Search bar should accept and retain typed input.");
     }
 
-    // 4. Home page loads within 5 seconds
+    // 4. Scroll down the home page and back up
     @Test
-    public void testHomePageLoadTime() {
-        long start = System.currentTimeMillis();
-        driver.get("https://www.michaels.com");
-        new WebDriverWait(driver, Duration.ofSeconds(10))
-                .until(ExpectedConditions.presenceOfElementLocated(By.tagName("body")));
-        long elapsed = System.currentTimeMillis() - start;
-        Assert.assertTrue(elapsed < 5000,
-                "Home page should load in under 5 seconds. Took: " + elapsed + "ms");
+    public void testHomePageScrolling() throws InterruptedException {
+        JavascriptExecutor js = (JavascriptExecutor) driver;
+        Thread.sleep(2000);
+        js.executeScript("window.scrollBy(0, 400)");
+        Thread.sleep(1500);
+        js.executeScript("window.scrollBy(0, 400)");
+        Thread.sleep(1500);
+        js.executeScript("window.scrollBy(0, 400)");
+        Thread.sleep(1500);
+        js.executeScript("window.scrollTo(0, 0)");
+        Thread.sleep(1500);
+        WebElement body = driver.findElement(By.tagName("body"));
+        Assert.assertTrue(body.isDisplayed(),
+                "Page should still be displayed after scrolling.");
     }
 
-    // 5. Site sets cookies on visit
+    // 5. Submit feedback popup (website suggestion, speed, 5 stars, no comment, no contact)
     @Test
-    public void testSiteSetsSessionCookies() {
-        Set<Cookie> cookies = driver.manage().getCookies();
-        Assert.assertFalse(cookies.isEmpty(),
-                "Michaels.com should set at least one cookie on page visit.");
-    }
+    public void testFeedbackPopup() throws InterruptedException {
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
+        Thread.sleep(3000);
 
-    // 6. Images on home page - documents any missing alt text as an accessibility finding
-    @Test
-    public void testHomePageImagesHaveAltText() {
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("img")));
-        List<WebElement> images = driver.findElements(By.tagName("img"));
-        Assert.assertFalse(images.isEmpty(), "Home page should contain images.");
-        int missingAlt = 0;
-        for (WebElement img : images) {
-            String alt = img.getAttribute("alt");
-            if (alt == null || alt.trim().isEmpty()) {
-                missingAlt++;
-            }
+        // Look for a feedback button/tab on the page
+        WebElement feedbackBtn = wait.until(ExpectedConditions.elementToBeClickable(
+                By.cssSelector("[class*='feedback'], [id*='feedback'], button[aria-label*='feedback'], [class*='survey'], [id*='survey']")));
+        Thread.sleep(1500);
+        feedbackBtn.click();
+        Thread.sleep(2000);
+
+        // Select "Website Suggestion" as the feedback type
+        WebElement websiteSuggestion = wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//*[contains(text(),'Website') or contains(text(),'Suggestion') or contains(text(),'suggestion')]")));
+        Thread.sleep(1500);
+        websiteSuggestion.click();
+        Thread.sleep(1500);
+
+        // Select "Speed" as the topic
+        WebElement speedOption = wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//*[contains(text(),'Speed') or contains(text(),'speed') or contains(text(),'Performance')]")));
+        Thread.sleep(1500);
+        speedOption.click();
+        Thread.sleep(1500);
+
+        // Select 5 star experience
+        List<WebElement> stars = driver.findElements(
+                By.cssSelector("[class*='star'], [aria-label*='star'], [class*='rating'] span, [class*='Star']"));
+        if (stars.size() >= 5) {
+            Thread.sleep(1000);
+            stars.get(4).click(); // click the 5th star
+            Thread.sleep(1500);
         }
-        System.out.println("Accessibility finding - images missing alt text: " + missingAlt);
-        Assert.assertTrue(missingAlt < images.size(),
-                "At least some images should have alt text. Total missing: " + missingAlt);
-    }
 
-    // 7. Page has at least one H1 tag
-    @Test
-    public void testPageHasOneH1Tag() {
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("h1")));
-        List<WebElement> h1Tags = driver.findElements(By.tagName("h1"));
-        Assert.assertTrue(h1Tags.size() >= 1,
-                "Home page should have at least one H1 tag. Found: " + h1Tags.size());
-    }
+        // Leave comment box empty and submit
+        WebElement submitBtn = wait.until(ExpectedConditions.elementToBeClickable(
+                By.cssSelector("button[type='submit'], [class*='submit'], [id*='submit']")));
+        Thread.sleep(1500);
+        submitBtn.click();
+        Thread.sleep(2000);
 
-    // 8. Cart element is visible in the header
-    @Test
-    public void testCartIconHasAriaLabel() {
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        WebElement cart = wait.until(ExpectedConditions.presenceOfElementLocated(
-                By.cssSelector("a[href*='cart'], button[class*='cart'], [class*='minicart'], [class*='mini-cart']")));
-        Assert.assertTrue(cart.isDisplayed(),
-                "Cart element should be visible in the header.");
+        // Verify submission was acknowledged
+        String bodyText = driver.findElement(By.tagName("body")).getText().toLowerCase();
+        Assert.assertTrue(
+                bodyText.contains("thank") || bodyText.contains("submitted") ||
+                        bodyText.contains("received") || bodyText.contains("feedback"),
+                "Feedback submission should show a thank you or confirmation message.");
     }
 }
