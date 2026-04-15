@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
+
+<suite name="Michaels Selenium Test Suite" parallel="classes" thread-count="1" verbose="2">
+
+    <test name="Michaels Full Regression Integration Test">
+        <classes>
+            <class name="com.michaels.testing.HomePageTest"/>
+            <class name="com.michaels.testing.SearchTest"/>
+            <class name="com.michaels.testing.ProductPageTest"/>
+            <class name="com.michaels.testing.CartTest"/>
+            <!--
+            <class name="com.michaels.testing.NavigationTest"/>
+            <class name="com.michaels.testing.AccountTest"/>
+            <class name="com.michaels.testing.StoreLocatorTest"/>
+            <class name="com.michaels.testing.CheckoutFlowTest"/>
+            -->
+        </classes>
+    </test>
+
+</suite>
