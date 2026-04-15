@@ -6,6 +6,7 @@ import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
+import java.time.Duration;
 
 public class BaseTest {
 
@@ -19,16 +20,20 @@ public class BaseTest {
     protected static final String TEST_LAST_NAME = "Testing";
 
     @BeforeMethod
-    public void setUp() {
+    public void setUp() throws InterruptedException {
         WebDriverManager.chromedriver().setup();
         ChromeOptions options = new ChromeOptions();
-        // Helps avoid some bot detection
         options.addArguments("--disable-blink-features=AutomationControlled");
         options.addArguments("--start-maximized");
         options.addArguments("--disable-notifications");
+
         driver = new ChromeDriver(options);
+
         driver.manage().window().maximize();
+        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(3));
+
         driver.get(BASE_URL);
+        Thread.sleep(2000); // wait 2 seconds after page loads before each test starts
     }
 
     @AfterMethod
