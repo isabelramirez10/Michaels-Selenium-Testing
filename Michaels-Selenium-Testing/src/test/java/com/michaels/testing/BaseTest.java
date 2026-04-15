@@ -12,6 +12,12 @@ public class BaseTest {
     protected WebDriver driver;
     protected static final String BASE_URL = "https://www.michaels.com";
 
+    // Test Credentials
+    protected static final String TEST_EMAIL = "erocha3976@eagle.fgcu.edu";
+    protected static final String TEST_PASSWORD = "SoftwareTesting123";
+    protected static final String TEST_FIRST_NAME = "Michael";
+    protected static final String TEST_LAST_NAME = "Testing";
+
     @BeforeMethod
     public void setUp() {
         WebDriverManager.chromedriver().setup();
@@ -21,6 +27,7 @@ public class BaseTest {
         options.addArguments("--start-maximized");
         options.addArguments("--disable-notifications");
         driver = new ChromeDriver(options);
+        driver.manage().window().maximize();
         driver.get(BASE_URL);
     }
 

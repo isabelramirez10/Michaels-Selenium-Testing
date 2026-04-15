@@ -11,44 +11,30 @@ import java.time.Duration;
 public class AccountTest extends BaseTest {
 
     @Test
-    public void testSignInLinkIsPresent() {
-        WebElement signIn = driver.findElement(
-                By.cssSelector("a[href*='login'], a[href*='signin'], a[aria-label*='Sign']"));
-        Assert.assertTrue(signIn.isDisplayed(), "Sign In link should be present in the header.");
-    }
+    public void testFullLoginFlow() {
+        getDriver().get(BASE_URL + "/account/login");
+        WebDriverWait wait = new WebDriverWait(getDriver(), Duration.ofSeconds(10));
 
-    @Test
-    public void testSignInPageLoads() {
-        driver.get("https://www.michaels.com/account/login");
-        Assert.assertTrue(driver.getCurrentUrl().toLowerCase().contains("login") ||
-                        driver.getCurrentUrl().toLowerCase().contains("account"),
-                "Login page URL should be correct.");
-    }
+        // 1. Enter Email
+        WebElement emailField = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.cssSelector("input[type='email'], #email")));
+        emailField.sendKeys(TEST_EMAIL);
 
-    @Test
-    public void testEmailFieldPresent() {
-        driver.get("https://www.michaels.com/account/login");
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        WebElement email = wait.until(ExpectedConditions.presenceOfElementLocated(
-                By.cssSelector("input[type='email'], input[name*='email']")));
-        Assert.assertTrue(email.isDisplayed(), "Email field should be displayed on the login page.");
-    }
+        // 2. Click Continue (Common on modern sites)
+        WebElement continueBtn = getDriver().findElement(By.cssSelector("button[type='submit']"));
+        continueBtn.click();
 
-    @Test
-    public void testPasswordFieldPresent() {
-        driver.get("https://www.michaels.com/account/login");
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        WebElement password = wait.until(ExpectedConditions.presenceOfElementLocated(
-                By.cssSelector("input[type='password']")));
-        Assert.assertTrue(password.isDisplayed(), "Password field should be present on the login page.");
-    }
+        // 3. Enter Password
+        WebElement passwordField = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.cssSelector("input[type='password'], #password")));
+        passwordField.sendKeys(TEST_PASSWORD);
 
-    @Test
-    public void testLoginButtonPresent() {
-        driver.get("https://www.michaels.com/account/login");
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        WebElement loginBtn = wait.until(ExpectedConditions.presenceOfElementLocated(
-                By.cssSelector("button[type='submit'], button[class*='login'], button[class*='sign']")));
-        Assert.assertTrue(loginBtn.isDisplayed(), "Login/submit button should be visible.");
+        // 4. Submit Login
+        getDriver().findElement(By.cssSelector("button[type='submit']")).click();
+
+        // 5. Verify successful login (Check for "Hi, Michael" or similar)
+        WebElement welcomeText = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.cssSelector(".user-greeting, [class*='welcome']")));
+        Assert.assertTrue(welcomeText.getText().contains(TEST_FIRST_NAME));
     }
 }
