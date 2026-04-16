@@ -20,10 +20,15 @@ public class BaseTest {
         options.addArguments("--disable-blink-features=AutomationControlled");
         options.addArguments("--start-maximized");
         options.addArguments("--disable-notifications");
+        options.addArguments("--no-sandbox");
+        options.addArguments("--disable-dev-shm-usage");
+        options.addArguments("--disable-extensions");
+        options.addArguments("--disable-web-security");
+        options.addArguments("--allow-running-insecure-content");
         driver = new ChromeDriver(options);
         driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(3));
         driver.get(BASE_URL);
-        Thread.sleep(2000); // wait 2 seconds after page loads before each test starts
+        Thread.sleep(2000);
     }
 
     @AfterMethod
