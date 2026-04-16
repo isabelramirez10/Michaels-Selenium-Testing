@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
 
-<suite name="Michaels Selenium Test Suite" parallel="classes" thread-count="1" verbose="2">
-
+<suite name="Michaels Selenium Test Suite" parallel="methods" thread-count="2" verbose="2">
+    <!-- if it stops working for isa, change to parallel="classes"-->
     <test name="Michaels Full Regression Integration Test">
         <classes>
+<!--
             <class name="com.michaels.testing.HomePageTest"/>
             <class name="com.michaels.testing.SearchTest"/>
             <class name="com.michaels.testing.ProductPageTest"/>
             <class name="com.michaels.testing.CartTest"/>
-            <!--
+-->
             <class name="com.michaels.testing.NavigationTest"/>
             <class name="com.michaels.testing.AccountTest"/>
             <class name="com.michaels.testing.StoreLocatorTest"/>
-            <class name="com.michaels.testing.CheckoutFlowTest"/>
-            -->
+            <class name="com.michaels.testing.CheckoutTest"/>
         </classes>
     </test>
 

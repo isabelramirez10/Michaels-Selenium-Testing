@@ -5,10 +5,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e3aa9246-f6ef-448c-a9f1-619952f0de93" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Michaels-Selenium-Testing/src/test/java/com/michaels/testing/AccountTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/Michaels-Selenium-Testing/src/test/java/com/michaels/testing/AccountTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Michaels-Selenium-Testing/src/test/java/com/michaels/testing/BaseTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/Michaels-Selenium-Testing/src/test/java/com/michaels/testing/BaseTest.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Michaels-Selenium-Testing/src/test/java/com/michaels/testing/CheckoutTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/Michaels-Selenium-Testing/src/test/java/com/michaels/testing/CheckoutTest.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Michaels-Selenium-Testing/src/test/java/com/michaels/testing/NavigationTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/Michaels-Selenium-Testing/src/test/java/com/michaels/testing/NavigationTest.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Michaels-Selenium-Testing/src/test/java/com/michaels/testing/StoreLocatorTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/Michaels-Selenium-Testing/src/test/java/com/michaels/testing/StoreLocatorTest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Michaels-Selenium-Testing/src/test/java/org/example/AppTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Michaels-Selenium-Testing/testing.xml" beforeDir="false" afterPath="$PROJECT_DIR$/Michaels-Selenium-Testing/testing.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -25,9 +28,9 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 3
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 3
+}</component>
   <component name="ProjectId" id="3CPIKeHEzT4aKbIhkh5XopuAEnp" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -40,6 +43,9 @@
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.git.unshallow": "true",
     "TestNG.AccountTest.executor": "Run",
+    "TestNG.CheckoutTest.executor": "Run",
+    "TestNG.NavigationTest.executor": "Run",
+    "TestNG.StoreLocatorTest.executor": "Run",
     "git-widget-placeholder": "Elizabeth/tests",
     "kotlin-language-version-configured": "true",
     "last_opened_file_path": "/Users/elizabethrocha/Michaels-Selenium-Testing",
@@ -48,7 +54,7 @@
     "project.structure.side.proportion": "0.2"
   }
 }]]></component>
-  <component name="RunManager">
+  <component name="RunManager" selected="TestNG.NavigationTest">
     <configuration name="AccountTest" type="TestNG" temporary="true" nameIsGenerated="true">
       <module name="michaels-selenium-tests" />
       <shortenClasspath name="NONE" />
@@ -76,8 +82,62 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
+    <configuration name="CheckoutTest" type="TestNG" temporary="true" nameIsGenerated="true">
+      <module name="michaels-selenium-tests" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="com.michaels.testing.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="com.michaels.testing" />
+      <option name="MAIN_CLASS_NAME" value="com.michaels.testing.CheckoutTest" />
+      <option name="TEST_OBJECT" value="CLASS" />
+      <properties />
+      <listeners />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="NavigationTest" type="TestNG" temporary="true" nameIsGenerated="true">
+      <module name="michaels-selenium-tests" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="com.michaels.testing.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="com.michaels.testing" />
+      <option name="MAIN_CLASS_NAME" value="com.michaels.testing.NavigationTest" />
+      <option name="TEST_OBJECT" value="CLASS" />
+      <properties />
+      <listeners />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="StoreLocatorTest" type="TestNG" temporary="true" nameIsGenerated="true">
+      <module name="michaels-selenium-tests" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="com.michaels.testing.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="com.michaels.testing" />
+      <option name="MAIN_CLASS_NAME" value="com.michaels.testing.StoreLocatorTest" />
+      <option name="TEST_OBJECT" value="CLASS" />
+      <properties />
+      <listeners />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="TestNG.NavigationTest" />
+        <item itemvalue="TestNG.CheckoutTest" />
+        <item itemvalue="TestNG.StoreLocatorTest" />
         <item itemvalue="TestNG.AccountTest" />
       </list>
     </recent_temporary>

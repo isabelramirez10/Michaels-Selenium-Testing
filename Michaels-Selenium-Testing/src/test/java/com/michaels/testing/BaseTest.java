@@ -26,12 +26,9 @@ public class BaseTest {
         options.addArguments("--disable-blink-features=AutomationControlled");
         options.addArguments("--start-maximized");
         options.addArguments("--disable-notifications");
-
         driver = new ChromeDriver(options);
-
         driver.manage().window().maximize();
         driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(3));
-
         driver.get(BASE_URL);
         Thread.sleep(2000); // wait 2 seconds after page loads before each test starts
     }
