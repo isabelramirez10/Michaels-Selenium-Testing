@@ -6,6 +6,7 @@ import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
+
 import java.time.Duration;
 
 public class BaseTest {
@@ -16,6 +17,7 @@ public class BaseTest {
     @BeforeMethod
     public void setUp() throws InterruptedException {
         WebDriverManager.chromedriver().setup();
+
         ChromeOptions options = new ChromeOptions();
         options.addArguments("--disable-blink-features=AutomationControlled");
         options.addArguments("--start-maximized");
@@ -23,12 +25,19 @@ public class BaseTest {
         options.addArguments("--no-sandbox");
         options.addArguments("--disable-dev-shm-usage");
         options.addArguments("--disable-extensions");
-        options.addArguments("--disable-web-security");
-        options.addArguments("--allow-running-insecure-content");
+        // Real user-agent so Michaels does not flag as bot
+        options.addArguments("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
+                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36");
+        options.setExperimentalOption("excludeSwitches", new String[]{"enable-automation"});
+        options.setExperimentalOption("useAutomationExtension", false);
+
         driver = new ChromeDriver(options);
-        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(3));
+
+        // NO implicit wait — it fights with WebDriverWait
+        driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(45));
+
         driver.get(BASE_URL);
-        Thread.sleep(2000);
+        Thread.sleep(3000);
     }
 
     @AfterMethod

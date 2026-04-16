@@ -1,267 +1,123 @@
 package com.michaels.testing;
 
-import org.openqa.selenium.By;
-import org.openqa.selenium.JavascriptExecutor;
-import org.openqa.selenium.Keys;
-import org.openqa.selenium.WebElement;
-import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.openqa.selenium.support.ui.WebDriverWait;
+import org.openqa.selenium.*;
+import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.support.ui.*;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import java.time.Duration;
-import java.util.List;
+import java.util.Collections;
 
 public class CartTest extends BaseTest {
 
-    private static final String EMAIL = "erocha3976@eagle.fgcu.edu";
-    private static final String PASSWORD = "SoftwareTesting123";
-
-    private void login() throws InterruptedException {
-        JavascriptExecutor js = (JavascriptExecutor) driver;
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
-
-        driver.get("https://www.michaels.com/login");
-        Thread.sleep(5000);
-
-        // If that also 404s try the sign in page
-        if (driver.getCurrentUrl().contains("404") ||
-                driver.findElement(By.tagName("body")).getText().toLowerCase().contains("not found")) {
-            driver.get("https://www.michaels.com/sign-in");
-            Thread.sleep(5000);
-        }
-
-        WebElement emailField = wait.until(ExpectedConditions.elementToBeClickable(
-                By.cssSelector("input[type='email'], input[name*='email'], input[id*='email']")));
-        emailField.click();
-        Thread.sleep(500);
-        for (char c : EMAIL.toCharArray()) {
-            emailField.sendKeys(String.valueOf(c));
-            Thread.sleep(80);
-        }
-        Thread.sleep(1000);
-
-        WebElement passwordField = wait.until(ExpectedConditions.elementToBeClickable(
-                By.cssSelector("input[type='password']")));
-        passwordField.click();
-        Thread.sleep(500);
-        for (char c : PASSWORD.toCharArray()) {
-            passwordField.sendKeys(String.valueOf(c));
-            Thread.sleep(80);
-        }
-        Thread.sleep(1000);
-
-        WebElement signInBtn = wait.until(ExpectedConditions.elementToBeClickable(
-                By.cssSelector("button[type='submit']")));
-        js.executeScript("arguments[0].click();", signInBtn);
-        Thread.sleep(5000);
-
-        System.out.println("Logged in. Current URL: " + driver.getCurrentUrl());
+    private WebDriverWait getWait() {
+        return new WebDriverWait(driver, Duration.ofSeconds(20));
     }
 
-    private void addFringeCurtainToCart() throws InterruptedException {
+    // --- FIX 1: Enhanced Popup Dismissal for 2026 ---
+    private void dismissBlockingElements() {
         JavascriptExecutor js = (JavascriptExecutor) driver;
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(30));
+        try {
+            // Force-remove common modal backdrops and popups that block clicks
+            js.executeScript(
+                    "var nodes = document.querySelectorAll('.modal-backdrop, .osano-cm-window, #onetrust-banner-sdk');" +
+                            "for(var i=0; i<nodes.length; i++) { nodes[i].style.display='none'; }"
+            );
+        } catch (Exception ignored) {}
+    }
 
-        login();
+    // Helper to get an item into the cart and reach the checkout page
+    private void navigateToCheckout(String productSearch) {
+        WebDriverWait wait = getWait();
+        JavascriptExecutor js = (JavascriptExecutor) driver;
 
         driver.get("https://www.michaels.com");
-        Thread.sleep(4000);
+        dismissBlockingElements();
 
-        WebElement searchBar = wait.until(ExpectedConditions.elementToBeClickable(
-                By.cssSelector("input[aria-label='Search Input']")));
-        searchBar.click();
-        Thread.sleep(500);
-        searchBar.clear();
-        Thread.sleep(300);
+        // Search
+        WebElement search = wait.until(ExpectedConditions.elementToBeClickable(By.id("mainSearch")));
+        search.sendKeys(productSearch + Keys.ENTER);
 
-        String keyword = "8ft fringe curtain celebrate it";
-        for (char c : keyword.toCharArray()) {
-            searchBar.sendKeys(String.valueOf(c));
-            Thread.sleep(80);
-        }
-        Thread.sleep(1500);
-        searchBar.sendKeys(Keys.ENTER);
-        Thread.sleep(5000);
+        // Click First Product
+        WebElement product = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector(".product-tile-link")));
+        js.executeScript("arguments[0].click();", product);
 
-        js.executeScript("window.scrollBy(0, 300)");
-        Thread.sleep(1500);
+        // Adjust Qty to 3 (React-Safe Setter)
+        WebElement qty = wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("input.quantity-select")));
+        js.executeScript(
+                "var setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;" +
+                        "setter.call(arguments[0], '3');" +
+                        "arguments[0].dispatchEvent(new Event('input', { bubbles: true }));" +
+                        "arguments[0].dispatchEvent(new Event('change', { bubbles: true }));", qty);
 
-        List<WebElement> productLinks = driver.findElements(
-                By.cssSelector("a[href*='/shop/party'], a[href*='fringe'], a[href*='curtain']"));
+        // Add to Cart
+        WebElement addBtn = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector(".add-to-cart")));
+        addBtn.click();
 
-        if (productLinks.size() > 0) {
-            js.executeScript("arguments[0].scrollIntoView({block:'center'});", productLinks.get(0));
-            Thread.sleep(1000);
-            js.executeScript("arguments[0].click();", productLinks.get(0));
-            Thread.sleep(5000);
-        } else {
-            List<WebElement> anyProduct = driver.findElements(By.cssSelector("a.chakra-link"));
-            Assert.assertTrue(anyProduct.size() > 0, "Search should return at least one product.");
-            js.executeScript("arguments[0].scrollIntoView({block:'center'});", anyProduct.get(0));
-            Thread.sleep(1000);
-            js.executeScript("arguments[0].click();", anyProduct.get(0));
-            Thread.sleep(5000);
-        }
+        // Move to Cart Page via the Side Drawer
+        WebElement viewCartBtn = wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//a[contains(@href, '/cart')] | //button[contains(., 'View Cart')]")));
+        js.executeScript("arguments[0].click();", viewCartBtn);
 
-        WebElement qty = wait.until(ExpectedConditions.presenceOfElementLocated(
-                By.cssSelector("input[aria-label='Number Stepper']")));
-        js.executeScript("arguments[0].scrollIntoView({block:'center'});", qty);
-        Thread.sleep(1000);
-        qty.click();
-        Thread.sleep(300);
-        qty.sendKeys(Keys.CONTROL + "a");
-        Thread.sleep(300);
-        qty.sendKeys("6");
-        Thread.sleep(1500);
-
-        System.out.println("Quantity value: " + qty.getAttribute("value"));
-
-        WebElement addToCartBtn = wait.until(ExpectedConditions.elementToBeClickable(
-                By.id("add-to-cart")));
-        js.executeScript("arguments[0].scrollIntoView({block:'center'});", addToCartBtn);
-        Thread.sleep(1000);
-        js.executeScript("arguments[0].click();", addToCartBtn);
-        Thread.sleep(5000);
-
-        System.out.println("Add to cart clicked. URL: " + driver.getCurrentUrl());
-
-        driver.get("https://www.michaels.com/cart");
-        Thread.sleep(6000);
+        wait.until(ExpectedConditions.urlContains("/cart"));
     }
 
-    // 1. Cart contains the added fringe curtain
-    @Test
-    public void testCartContainsAddedItem() throws InterruptedException {
-        addFringeCurtainToCart();
-        Thread.sleep(1500);
-
-        String body = driver.findElement(By.tagName("body")).getText().toLowerCase();
-        System.out.println("Cart body: " + body.substring(0, Math.min(body.length(), 300)));
-
-        Assert.assertTrue(
-                body.contains("fringe") || body.contains("curtain") ||
-                        body.contains("celebrate") || body.contains("item") ||
-                        body.contains("product"),
-                "Cart should contain an item.");
-        Thread.sleep(1500);
+    @Test(description = "Verify adding 3 items to cart")
+    public void test1_AddQuantityOfThree() {
+        navigateToCheckout("canvas");
+        WebElement qtyInput = getWait().until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(".cart-item-quantity")));
+        Assert.assertEquals(qtyInput.getAttribute("value"), "3");
     }
 
-    // 2. Type MAKERSAVE promo code and click apply
-    @Test
-    public void testApplyPromoCode() throws InterruptedException {
-        addFringeCurtainToCart();
-        JavascriptExecutor js = (JavascriptExecutor) driver;
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
-        Thread.sleep(1500);
+    @Test(description = "Verify promo code application")
+    public void test2_ApplyPromoCode() {
+        navigateToCheckout("brush");
+        WebDriverWait wait = getWait();
 
-        js.executeScript("window.scrollBy(0, 500)");
-        Thread.sleep(1500);
-        js.executeScript("window.scrollBy(0, 500)");
-        Thread.sleep(1500);
+        // Toggle promo section if it's collapsed
+        try {
+            driver.findElement(By.cssSelector(".promo-code-header")).click();
+        } catch (Exception ignored) {}
 
-        WebElement promoField = wait.until(ExpectedConditions.presenceOfElementLocated(
-                By.id("promoCode")));
-        js.executeScript("arguments[0].scrollIntoView({block:'center'});", promoField);
-        Thread.sleep(1000);
-        promoField.click();
-        Thread.sleep(500);
+        WebElement promoInput = wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("couponCode")));
+        promoInput.sendKeys("20MADEBYYOU");
 
-        for (char c : "MAKERSAVE".toCharArray()) {
-            promoField.sendKeys(String.valueOf(c));
-            Thread.sleep(150);
-        }
-        Thread.sleep(1500);
+        WebElement applyBtn = driver.findElement(By.cssSelector(".promo-code-submit"));
+        applyBtn.click();
 
-        WebElement applyBtn = wait.until(ExpectedConditions.presenceOfElementLocated(
-                By.xpath("//button[@type='button' and .//*[contains(text(),'Apply')]]")));
-        js.executeScript("arguments[0].scrollIntoView({block:'center'});", applyBtn);
-        Thread.sleep(1000);
-        js.executeScript("arguments[0].click();", applyBtn);
-        Thread.sleep(4000);
-
-        String body = driver.findElement(By.tagName("body")).getText().toLowerCase();
-        Assert.assertTrue(
-                body.contains("makersave") || body.contains("promo") ||
-                        body.contains("invalid") || body.contains("applied") ||
-                        body.contains("discount") || body.contains("code"),
-                "Cart should respond to promo code.");
-        Thread.sleep(1500);
+        // Assert that the page responded (either success message or 'invalid code' UI)
+        WebElement feedback = wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(".coupon-message, .error-feedback")));
+        Assert.assertTrue(feedback.isDisplayed());
     }
 
-    // 3. Update quantity in cart to 5
-    @Test
-    public void testUpdateQuantityInCart() throws InterruptedException {
-        addFringeCurtainToCart();
-        JavascriptExecutor js = (JavascriptExecutor) driver;
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
-        Thread.sleep(1500);
+    @Test(description = "Update quantity directly in cart")
+    public void test3_UpdateInCart() {
+        navigateToCheckout("canvas");
+        WebElement qty = getWait().until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(".cart-item-quantity")));
 
-        WebElement qty = wait.until(ExpectedConditions.presenceOfElementLocated(
-                By.cssSelector("input[aria-label='Number Stepper']")));
-        js.executeScript("arguments[0].scrollIntoView({block:'center'});", qty);
-        Thread.sleep(1000);
-        qty.click();
-        Thread.sleep(300);
-        qty.sendKeys(Keys.CONTROL + "a");
-        Thread.sleep(300);
-        qty.sendKeys("5");
-        Thread.sleep(1500);
-        qty.sendKeys(Keys.TAB);
-        Thread.sleep(4000);
+        qty.clear();
+        qty.sendKeys("2" + Keys.ENTER);
 
-        String body = driver.findElement(By.tagName("body")).getText();
-        Assert.assertTrue(body.contains("5") || body.contains("cart"),
-                "Cart should reflect updated quantity.");
-        Thread.sleep(1500);
+        getWait().until(ExpectedConditions.attributeToBe(qty, "value", "2"));
+        Assert.assertEquals(qty.getAttribute("value"), "2");
     }
 
-    // 4. Remove item from cart and verify empty state
-    @Test
-    public void testRemoveItemFromCart() throws InterruptedException {
-        addFringeCurtainToCart();
-        JavascriptExecutor js = (JavascriptExecutor) driver;
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
-        Thread.sleep(1500);
+    @Test(description = "Remove item from cart")
+    public void test4_RemoveItem() {
+        navigateToCheckout("ribbon");
+        WebElement remove = getWait().until(ExpectedConditions.elementToBeClickable(By.cssSelector(".remove-item-btn")));
+        remove.click();
 
-        WebElement removeBtn = wait.until(ExpectedConditions.presenceOfElementLocated(
-                By.xpath("//button[@type='button' and .//*[contains(text(),'Remove')]]")));
-        js.executeScript("arguments[0].scrollIntoView({block:'center'});", removeBtn);
-        Thread.sleep(1000);
-        js.executeScript("arguments[0].click();", removeBtn);
-        Thread.sleep(5000);
-
-        String body = driver.findElement(By.tagName("body")).getText().toLowerCase();
-        Assert.assertTrue(
-                body.contains("empty") || body.contains("no item") ||
-                        body.contains("0 item") || body.contains("start shopping") ||
-                        body.contains("your cart") || body.contains("cart"),
-                "Cart should show empty state after removal.");
-        Thread.sleep(1500);
+        WebElement empty = getWait().until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(".cart-empty")));
+        Assert.assertTrue(empty.getText().contains("empty"));
     }
 
-    // 5. Continue shopping from cart back to home
-    @Test
-    public void testContinueShoppingFromCart() throws InterruptedException {
-        addFringeCurtainToCart();
-        JavascriptExecutor js = (JavascriptExecutor) driver;
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
-        Thread.sleep(1500);
+    @Test(description = "Navigate back to shopping from cart")
+    public void test5_ContinueShopping() {
+        navigateToCheckout("yarn");
+        WebElement continueBtn = getWait().until(ExpectedConditions.elementToBeClickable(By.cssSelector(".continue-shopping")));
+        continueBtn.click();
 
-        List<WebElement> continueLinks = driver.findElements(
-                By.xpath("//a[contains(text(),'Continue')] | //button[contains(text(),'Continue')]"));
-
-        if (continueLinks.size() > 0) {
-            js.executeScript("arguments[0].scrollIntoView({block:'center'});", continueLinks.get(0));
-            Thread.sleep(1000);
-            js.executeScript("arguments[0].click();", continueLinks.get(0));
-            Thread.sleep(4000);
-        } else {
-            driver.get("https://www.michaels.com");
-            Thread.sleep(4000);
-        }
-
-        Assert.assertTrue(driver.getCurrentUrl().contains("michaels.com"),
-                "Should return to Michaels.com.");
-        Thread.sleep(1500);
+        Assert.assertFalse(driver.getCurrentUrl().contains("/cart"));
     }
 }
