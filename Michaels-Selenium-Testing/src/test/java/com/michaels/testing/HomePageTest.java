@@ -4,6 +4,7 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.interactions.Actions;
+import org.openqa.selenium.Keys;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.testng.Assert;
@@ -12,89 +13,196 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Set;
 
+
 public class HomePageTest extends BaseTest {
 
-    // 1. Hover over each main navigation category one by one
+    // 1. Open a new tab from the homepage and navigate to Custom Framing
     @Test
-    public void testHoverOverNavigationCategories() throws InterruptedException {
+    public void testOpenCustomFramingInNewTab() {
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
-        Actions actions = new Actions(driver);
-        JavascriptExecutor js = (JavascriptExecutor) driver;
-        Thread.sleep(2000);
 
-        List<WebElement> navItems = wait.until(ExpectedConditions.presenceOfAllElementsLocatedBy(
-                By.cssSelector("p.chakra-text.css-w54l2g")));
+        String originalWindow = driver.getWindowHandle();
 
-        Assert.assertTrue(navItems.size() > 0, "Navigation items should be present.");
+        // Find Custom Framing link
+        WebElement customFraming = wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//a[contains(., 'Custom Framing')]")
+        ));
 
-        for (WebElement item : navItems) {
-            try {
-                js.executeScript("arguments[0].scrollIntoView({block: 'center'});", item);
-                Thread.sleep(500);
-                actions.moveToElement(item).perform();
-                Thread.sleep(1500);
-            } catch (Exception e) {
-                // skip
+        // Open in new tab
+        customFraming.sendKeys(Keys.chord(Keys.CONTROL, Keys.RETURN));
+
+        // Wait for new tab
+        wait.until(driver -> driver.getWindowHandles().size() > 1);
+
+        Set<String> windows = driver.getWindowHandles();
+        for (String window : windows) {
+            if (!window.equals(originalWindow)) {
+                driver.switchTo().window(window);
+                break;
             }
         }
 
-        actions.moveToElement(driver.findElement(
-                By.cssSelector("input[aria-label='Search Input']"))).perform();
-        Thread.sleep(1000);
+        // Validate navigation
+        wait.until(ExpectedConditions.urlContains("customframing"));
 
-        Assert.assertTrue(driver.getCurrentUrl().contains("michaels.com"),
-                "Page should still be on Michaels after hovering navigation.");
+        Assert.assertTrue(driver.getCurrentUrl().contains("custom"),
+                "Should navigate to Custom Framing page.");
+
+        // Close new tab and return
+        driver.close();
+        driver.switchTo().window(originalWindow);
     }
-
-    // 2. Type slowly in the search bar and wait for autocomplete
     @Test
-    public void testSearchBarAutocomplete() throws InterruptedException {
+    public void testLogoRedirectsToHome() throws InterruptedException {
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
-        Thread.sleep(2000);
+        JavascriptExecutor js = (JavascriptExecutor) driver;
 
-        WebElement searchBar = wait.until(ExpectedConditions.elementToBeClickable(
-                By.cssSelector("input[aria-label='Search Input']")));
-        searchBar.click();
+        String homeUrl = driver.getCurrentUrl();
+
+        // Navigate to another page using promo banner
+        js.executeScript("window.scrollBy(0, 600);");
         Thread.sleep(1000);
 
-        String keyword = "acr";
-        for (char c : keyword.toCharArray()) {
-            searchBar.sendKeys(String.valueOf(c));
-            Thread.sleep(400);
+        List<WebElement> banners = driver.findElements(
+                By.cssSelector("a[href*='/shop'], a[href*='/sale'], a[href*='/classes']"));
+
+        Assert.assertTrue(banners.size() > 0,
+                "At least one promotional link should exist on the home page.");
+
+        boolean clicked = false;
+        for (WebElement banner : banners) {
+            try {
+                if (banner.isDisplayed()) {
+                    js.executeScript("arguments[0].scrollIntoView({block: 'center'});", banner);
+                    Thread.sleep(500);
+                    js.executeScript("arguments[0].click();", banner);
+                    clicked = true;
+                    Thread.sleep(2000);
+                    break;
+                }
+            } catch (Exception e) {
+                // try next
+            }
         }
 
-        Thread.sleep(3000);
+        Assert.assertTrue(clicked,
+                "Should have found and clicked at least one visible banner.");
+        Assert.assertNotEquals(driver.getCurrentUrl(), homeUrl,
+                "Clicking a banner should navigate away from the home page.");
 
-        Assert.assertEquals(searchBar.getAttribute("value"), "acr",
-                "Search bar should contain the typed text.");
+        // Click Michaels logo (stable selector)
+        WebElement logo = wait.until(ExpectedConditions.elementToBeClickable(
+                By.cssSelector("a[aria-label*='Michaels'], a[href='/']")
+        ));
+
+        logo.click();
+
+        // Wait until we are back on homepage
+        wait.until(ExpectedConditions.urlToBe(homeUrl));
+
+        Assert.assertEquals(driver.getCurrentUrl(), homeUrl,
+                "Clicking logo should return to homepage.");
     }
 
-    // 3. Scroll down the entire home page slowly stopping at each section
+
+
     @Test
-    public void testHomePageScrolling() throws InterruptedException {
+    public void testSocialMediaLinkValidation() throws InterruptedException {
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
         JavascriptExecutor js = (JavascriptExecutor) driver;
+
+        // Scroll to footer and wait for it to render
+        js.executeScript("window.scrollTo(0, document.body.scrollHeight)");
         Thread.sleep(2000);
 
-        js.executeScript("window.scrollBy(0, 400)");
-        Thread.sleep(2000);
-        js.executeScript("window.scrollBy(0, 400)");
-        Thread.sleep(2000);
-        js.executeScript("window.scrollBy(0, 400)");
-        Thread.sleep(2000);
-        js.executeScript("window.scrollBy(0, 400)");
-        Thread.sleep(2000);
-        js.executeScript("window.scrollBy(0, 400)");
-        Thread.sleep(2000);
-        js.executeScript("window.scrollBy(0, 400)");
-        Thread.sleep(2000);
-        js.executeScript("window.scrollTo(0, 0)");
-        Thread.sleep(2000);
+        String originalWindow = driver.getWindowHandle();
+        Set<String> beforeClick = driver.getWindowHandles();
 
-        Assert.assertTrue(driver.findElement(By.tagName("body")).isDisplayed(),
-                "Page should still be displayed after scrolling.");
+        // Wait for social links to be present after scroll
+        List<WebElement> socialLinks = wait.until(
+                ExpectedConditions.presenceOfAllElementsLocatedBy(
+                        By.cssSelector("a[href*='facebook'], a[href*='instagram'], a[href*='twitter'], a[href*='pinterest'], a[href*='tiktok'], a[href*='youtube']")
+                )
+        );
+
+        Assert.assertTrue(socialLinks.size() > 0, "Social media links should exist in the footer.");
+
+        // Find the first visible social link and grab its href before clicking
+        WebElement targetLink = null;
+        String expectedDomain = null;
+
+        for (WebElement link : socialLinks) {
+            try {
+                if (link.isDisplayed()) {
+                    String href = link.getAttribute("href").toLowerCase();
+                    if (href.contains("facebook"))       expectedDomain = "facebook";
+                    else if (href.contains("instagram")) expectedDomain = "instagram";
+                    else if (href.contains("twitter"))   expectedDomain = "twitter";
+                    else if (href.contains("pinterest")) expectedDomain = "pinterest";
+                    else if (href.contains("tiktok"))    expectedDomain = "tiktok";
+                    else if (href.contains("youtube"))   expectedDomain = "youtube";
+
+                    if (expectedDomain != null) {
+                        targetLink = link;
+                        break;
+                    }
+                }
+            } catch (Exception e) {
+                // try next
+            }
+        }
+
+        Assert.assertNotNull(targetLink, "Should find at least one visible social media link.");
+        Assert.assertNotNull(expectedDomain, "Should resolve the expected social media domain.");
+
+        // Scroll into view and click via JS to avoid interception
+        js.executeScript("arguments[0].scrollIntoView({block: 'center'});", targetLink);
+        Thread.sleep(500);
+        js.executeScript("arguments[0].click();", targetLink);
+
+        // Wait for new tab/window — some social links open in same tab, handle both cases
+        boolean newTabOpened = false;
+        for (int i = 0; i < 10; i++) {
+            Thread.sleep(500);
+            if (driver.getWindowHandles().size() > beforeClick.size()) {
+                newTabOpened = true;
+                break;
+            }
+        }
+
+        if (newTabOpened) {
+            // Switch to the new tab
+            for (String window : driver.getWindowHandles()) {
+                if (!beforeClick.contains(window)) {
+                    driver.switchTo().window(window);
+                    break;
+                }
+            }
+
+            // Wait for page to load and validate URL
+            wait.until(ExpectedConditions.urlContains(expectedDomain));
+            String currentUrl = driver.getCurrentUrl().toLowerCase();
+            Assert.assertTrue(currentUrl.contains(expectedDomain),
+                    "New tab should navigate to " + expectedDomain + " but got: " + currentUrl);
+
+            driver.close();
+            driver.switchTo().window(originalWindow);
+
+        } else {
+            // Link opened in same tab — still validate the URL
+            wait.until(ExpectedConditions.urlContains(expectedDomain));
+            String currentUrl = driver.getCurrentUrl().toLowerCase();
+            Assert.assertTrue(currentUrl.contains(expectedDomain),
+                    "Should have navigated to " + expectedDomain + " but got: " + currentUrl);
+
+            driver.navigate().back();
+        }
     }
+
 
     // 4. Click a promotional banner and verify it navigates to a new page
+
+    // Click a promotional banner and verify it navigates to a new page
     @Test
     public void testPromoBannerNavigates() throws InterruptedException {
         JavascriptExecutor js = (JavascriptExecutor) driver;
@@ -133,7 +241,9 @@ public class HomePageTest extends BaseTest {
                 "Clicking a banner should navigate away from the home page.");
         Thread.sleep(1000);
     }
-/*
+
+
+
     // 5. Click the feedback tab and interact with the popup window
     @Test
     public void testFeedbackPopup() throws InterruptedException {
@@ -174,135 +284,7 @@ public class HomePageTest extends BaseTest {
             Thread.sleep(5000);
         }
 
-        // Step 1 — Select Website Suggestion
-        try {
-            WebElement websiteOpt = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.xpath("//*[contains(text(),'Website') or contains(text(),'Suggestion') or contains(text(),'website')]")));
-            Thread.sleep(1000);
-            js.executeScript("arguments[0].click();", websiteOpt);
-            Thread.sleep(2000);
-        } catch (Exception e) {
-            System.out.println("Website suggestion not found: " + e.getMessage());
-        }
 
-        // Step 2 — Continue after Website Suggestion
-        try {
-            WebElement continueBtn = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.xpath("//button[contains(text(),'Continue')] | //input[@value='Continue'] | //a[contains(text(),'Continue')]")));
-            Thread.sleep(1000);
-            js.executeScript("arguments[0].click();", continueBtn);
-            Thread.sleep(2000);
-        } catch (Exception e) {
-            System.out.println("Continue after website suggestion not found: " + e.getMessage());
-        }
 
-        // Step 3 — Select Site Speed
-        try {
-            WebElement speedOpt = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.xpath("//*[contains(text(),'Site Speed') or contains(text(),'Speed') or contains(text(),'speed') or contains(text(),'Performance')]")));
-            Thread.sleep(1000);
-            js.executeScript("arguments[0].click();", speedOpt);
-            Thread.sleep(2000);
-        } catch (Exception e) {
-            System.out.println("Site Speed not found: " + e.getMessage());
-        }
-
-        // Step 4 — Continue after Site Speed
-        try {
-            WebElement continueBtn2 = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.xpath("//button[contains(text(),'Continue')] | //input[@value='Continue'] | //a[contains(text(),'Continue')]")));
-            Thread.sleep(1000);
-            js.executeScript("arguments[0].click();", continueBtn2);
-            Thread.sleep(2000);
-        } catch (Exception e) {
-            System.out.println("Continue after site speed not found: " + e.getMessage());
-        }
-
-        // Step 5 — Select 5 stars
-        try {
-            List<WebElement> stars = driver.findElements(
-                    By.cssSelector("input[type='radio'], [class*='star'], [class*='Star'], label[for*='5']"));
-            if (stars.size() >= 5) {
-                Thread.sleep(1000);
-                js.executeScript("arguments[0].click();", stars.get(4));
-                Thread.sleep(2000);
-            } else if (stars.size() > 0) {
-                Thread.sleep(1000);
-                js.executeScript("arguments[0].click();", stars.get(stars.size() - 1));
-                Thread.sleep(2000);
-            }
-        } catch (Exception e) {
-            System.out.println("Stars not found: " + e.getMessage());
-        }
-
-        // Step 6 — Continue after stars
-        try {
-            WebElement continueBtn3 = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.xpath("//button[contains(text(),'Continue')] | //input[@value='Continue'] | //a[contains(text(),'Continue')]")));
-            Thread.sleep(1000);
-            js.executeScript("arguments[0].click();", continueBtn3);
-            Thread.sleep(2000);
-        } catch (Exception e) {
-            System.out.println("Continue after stars not found: " + e.getMessage());
-        }
-
-        // Step 7 — Select No Comment
-        try {
-            WebElement noComment = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.xpath("//*[contains(text(),'No Comment') or contains(text(),'no comment') or contains(text(),'No comment') or contains(text(),'Skip') or contains(text(),'skip')]")));
-            Thread.sleep(1000);
-            js.executeScript("arguments[0].click();", noComment);
-            Thread.sleep(2000);
-        } catch (Exception e) {
-            System.out.println("No comment not found: " + e.getMessage());
-        }
-
-        // Step 8 — Continue after No Comment
-        try {
-            WebElement continueBtn4 = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.xpath("//button[contains(text(),'Continue')] | //input[@value='Continue'] | //a[contains(text(),'Continue')]")));
-            Thread.sleep(1000);
-            js.executeScript("arguments[0].click();", continueBtn4);
-            Thread.sleep(2000);
-        } catch (Exception e) {
-            System.out.println("Continue after no comment not found: " + e.getMessage());
-        }
-
-        // Step 9 — Select No to contact
-        try {
-            WebElement noContact = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.xpath("//*[contains(text(),'No') and not(contains(text(),'Note')) and not(contains(text(),'None'))] | //input[@value='No'] | //label[contains(text(),'No')]")));
-            Thread.sleep(1000);
-            js.executeScript("arguments[0].click();", noContact);
-            Thread.sleep(2000);
-        } catch (Exception e) {
-            System.out.println("No to contact not found: " + e.getMessage());
-        }
-
-        // Step 10 — Continue after No to contact
-        try {
-            WebElement continueBtn5 = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.xpath("//button[contains(text(),'Continue')] | //input[@value='Continue'] | //a[contains(text(),'Continue')]")));
-            Thread.sleep(1000);
-            js.executeScript("arguments[0].click();", continueBtn5);
-            Thread.sleep(3000);
-        } catch (Exception e) {
-            System.out.println("Continue after no contact not found: " + e.getMessage());
-        }
-
-        // Verify confirmation
-        String finalBody = driver.findElement(By.tagName("body")).getText().toLowerCase();
-        Assert.assertTrue(
-                finalBody.contains("thank") || finalBody.contains("submitted") ||
-                        finalBody.contains("complete") || finalBody.contains("received") ||
-                        finalBody.contains("feedback") || finalBody.contains("response"),
-                "Survey should show a confirmation after submission.");
-        Thread.sleep(2000);
-
-        // Close popup and return to Michaels
-        driver.close();
-        Thread.sleep(1000);
-        driver.switchTo().window(originalWindow);
-        Thread.sleep(1000);
-    }*/
+    }
 }

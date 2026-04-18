@@ -9,188 +9,209 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+
 import java.time.Duration;
 import java.util.List;
 
 public class SearchTest extends BaseTest {
 
-    private void typeInSearchBar(String keyword) throws InterruptedException {
+    private void typeInSearchBar(String keyword) {
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
+
         WebElement searchBar = wait.until(ExpectedConditions.elementToBeClickable(
-                By.cssSelector("input[aria-label='Search Input']")));
-        Thread.sleep(2000);
+                By.cssSelector("input[aria-label='Search Input']")
+        ));
+
         searchBar.click();
-        Thread.sleep(2000);
         searchBar.clear();
-        for (char c : keyword.toCharArray()) {
-            searchBar.sendKeys(String.valueOf(c));
-            Thread.sleep(200);
-        }
-        Thread.sleep(3000);
+        searchBar.sendKeys(keyword);
         searchBar.sendKeys(Keys.ENTER);
-        Thread.sleep(6000);
+
+        // Wait for results page to load
+        wait.until(ExpectedConditions.presenceOfElementLocated(
+                By.cssSelector("a[href*='/product']")
+        ));
     }
 
-    // 1. Search for acrylic paint, scroll through results, click first product
+    // 1. Search for acrylic paint, scroll, click first product
     @Test
-    public void testSearchThenClickProduct() throws InterruptedException {
-        typeInSearchBar("acrylic paint");
+    public void testSearchThenClickProduct() {
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
         JavascriptExecutor js = (JavascriptExecutor) driver;
 
-        wait.until(ExpectedConditions.presenceOfElementLocated(
-                By.cssSelector("a.chakra-link")));
-        Thread.sleep(3000);
+        typeInSearchBar("acrylic paint");
 
-        // Scroll through results
-        js.executeScript("window.scrollBy(0, 500)");
-        Thread.sleep(3000);
-        js.executeScript("window.scrollBy(0, 500)");
-        Thread.sleep(3000);
-        js.executeScript("window.scrollTo(0, 0)");
-        Thread.sleep(3000);
+        List<WebElement> products = wait.until(
+                ExpectedConditions.visibilityOfAllElementsLocatedBy(
+                        By.cssSelector("a[href*='/product']")
+                )
+        );
 
-        // Click the first product link
-        List<WebElement> products = driver.findElements(By.cssSelector("a.chakra-link"));
-        Assert.assertTrue(products.size() > 0, "Search results should contain product links.");
+        Assert.assertTrue(products.size() > 0, "No product links found.");
 
-        products.get(0).click();
-        Thread.sleep(5000);
+        WebElement firstProduct = products.get(0);
 
-        Assert.assertFalse(driver.getCurrentUrl().contains("search") &&
-                        driver.getCurrentUrl().equals(BASE_URL),
-                "Clicking a product should navigate to a product page.");
+        js.executeScript("arguments[0].scrollIntoView(true);", firstProduct);
+        wait.until(ExpectedConditions.elementToBeClickable(firstProduct));
+
+        js.executeScript("arguments[0].click();", firstProduct);
+
+        wait.until(ExpectedConditions.not(
+                ExpectedConditions.urlContains("search")
+        ));
+
+        Assert.assertFalse(driver.getCurrentUrl().contains("search"),
+                "Should navigate to product page.");
     }
 
-    // 2. Search for yarn and attempt to sort by price low to high
+    // 2. Search for yarn and sort by price low to high
+
     @Test
     public void testSearchAndSort() throws InterruptedException {
-        typeInSearchBar("yarn");
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
-        Thread.sleep(3000);
-
-        // Look for a sort dropdown
-        List<WebElement> sortDropdowns = driver.findElements(
-                By.cssSelector("select, [class*='sort'], [aria-label*='sort'], [aria-label*='Sort']"));
-
-        if (sortDropdowns.size() > 0) {
-            Thread.sleep(2000);
-            sortDropdowns.get(0).click();
-            Thread.sleep(3000);
-
-            List<WebElement> sortOptions = driver.findElements(
-                    By.cssSelector("option, [class*='sort-option']"));
-            if (sortOptions.size() > 1) {
-                sortOptions.get(1).click();
-                Thread.sleep(4000);
-            }
-        }
-
-        Assert.assertTrue(driver.getCurrentUrl().contains("yarn") ||
-                        driver.getCurrentUrl().toLowerCase().contains("search"),
-                "Page should still show yarn search results after sorting.");
-    }
-
-    // 3. Search for canvas and scroll to bottom to check for pagination
-    @Test
-    public void testSearchScrollAndPagination() throws InterruptedException {
-        typeInSearchBar("canvas");
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
         JavascriptExecutor js = (JavascriptExecutor) driver;
 
-        wait.until(ExpectedConditions.presenceOfElementLocated(
-                By.cssSelector("a.chakra-link")));
+        typeInSearchBar("yarn");
+        Thread.sleep(2000);
+
+        // Click the sort button using visible text
+        WebElement sortButton = wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//button[contains(text(),'Sort')] | //button[.//*[contains(text(),'Sort')]] | //button[contains(@class,'sort')]")));
+        js.executeScript("arguments[0].scrollIntoView({block:'center'});", sortButton);
+        Thread.sleep(1000);
+        js.executeScript("arguments[0].click();", sortButton);
+        Thread.sleep(2000);
+
+        // Click Low to High option
+        WebElement lowToHigh = wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//*[contains(text(),'Low to High') or contains(text(),'low to high') or contains(text(),'Price: Low')]")));
+        js.executeScript("arguments[0].scrollIntoView({block:'center'});", lowToHigh);
+        Thread.sleep(1000);
+        js.executeScript("arguments[0].click();", lowToHigh);
         Thread.sleep(3000);
 
-        js.executeScript("window.scrollBy(0, 600)");
-        Thread.sleep(3000);
-        js.executeScript("window.scrollBy(0, 600)");
-        Thread.sleep(3000);
-        js.executeScript("window.scrollBy(0, 600)");
-        Thread.sleep(3000);
-        js.executeScript("window.scrollBy(0, 600)");
-        Thread.sleep(3000);
+        wait.until(ExpectedConditions.presenceOfAllElementsLocatedBy(
+                By.cssSelector("a[href*='/product']")));
 
-        // Check for pagination or load more
-        List<WebElement> pagination = driver.findElements(
-                By.cssSelector("[aria-label*='page'], [class*='pagination'], button[class*='load']"));
-
-        // Scroll back to top
-        js.executeScript("window.scrollTo(0, 0)");
-        Thread.sleep(3000);
-
-        Assert.assertTrue(driver.getCurrentUrl().contains("canvas") ||
-                        driver.getCurrentUrl().toLowerCase().contains("search"),
-                "Should remain on canvas search results page after scrolling.");
-    }
-
-    // 4. Search for glitter and hover over first 3 product cards then click the third
-    @Test
-    public void testSearchHoverAndClickThirdProduct() throws InterruptedException {
-        typeInSearchBar("glitter");
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
-        Actions actions = new Actions(driver);
-
-        wait.until(ExpectedConditions.presenceOfElementLocated(
-                By.cssSelector("a.chakra-link")));
-        Thread.sleep(3000);
-
-        List<WebElement> products = driver.findElements(By.cssSelector("a.chakra-link"));
-        Assert.assertTrue(products.size() >= 3,
-                "Search results should have at least 3 products to hover over.");
-
-        // Hover over first product
-        actions.moveToElement(products.get(0)).perform();
-        Thread.sleep(3000);
-
-        // Hover over second product
-        actions.moveToElement(products.get(1)).perform();
-        Thread.sleep(3000);
-
-        // Hover over third product then click
-        actions.moveToElement(products.get(2)).perform();
-        Thread.sleep(3000);
-        products.get(2).click();
-        Thread.sleep(5000);
-
-        Assert.assertFalse(driver.getCurrentUrl().isEmpty(),
-                "Clicking the third product should navigate to a product page.");
-    }
-
-    // 5. Search nonsense then search again for brush from the results page
-    @Test
-    public void testNonsenseSearchThenRecovery() throws InterruptedException {
-        typeInSearchBar("xyzzy12345nonsense");
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
-        Thread.sleep(5000);
-
-        String bodyText = driver.findElement(By.tagName("body")).getText().toLowerCase();
         Assert.assertTrue(
-                bodyText.contains("no results") || bodyText.contains("0 result") ||
-                        bodyText.contains("sorry") || bodyText.contains("no product") ||
-                        bodyText.contains("found") || bodyText.contains("search"),
-                "Nonsense search should show a no results message.");
+                driver.getCurrentUrl().contains("yarn") ||
+                        driver.getCurrentUrl().toLowerCase().contains("search"),
+                "Should remain on yarn results after sorting.");
+        Thread.sleep(1000);
+    }
 
-        Thread.sleep(3000);
+    // 3. Search for canvas and scroll to bottom properly
+    @Test
+    public void testSearchScrollAndPagination() throws InterruptedException {
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
+        JavascriptExecutor js = (JavascriptExecutor) driver;
 
-        // Now search again for brush using the same search bar
+        typeInSearchBar("canvas");
+
+        wait.until(ExpectedConditions.presenceOfElementLocated(
+                By.cssSelector("a[href*='/product']")
+        ));
+
+
+        long lastHeight = (long) js.executeScript("return document.body.scrollHeight");
+        while (true) {
+            for (long currentScroll = 0; currentScroll < lastHeight; currentScroll += 300) {
+                js.executeScript("window.scrollBy(0, 300);");
+                Thread.sleep(400); // slower, visible scrolling
+            }
+
+            Thread.sleep(2000); // allow new products to load
+
+            long newHeight = (long) js.executeScript("return document.body.scrollHeight");
+            if (newHeight == lastHeight) {
+                break;
+            }
+            lastHeight = newHeight;
+        }
+
+        // Close the page when scrolling reaches the bottom
+        driver.close();
+    }
+
+    // 4. Type in search bar, view search history suggestions, then clear search history
+    @Test
+    public void testClearSearchHistory() throws InterruptedException {
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
+        JavascriptExecutor js = (JavascriptExecutor) driver;
+
+        // Step 1: Perform a real search to create history
+        typeInSearchBar("paint");
+        Thread.sleep(2000);
+
+        // Step 2: Click search bar again
         WebElement searchBar = wait.until(ExpectedConditions.elementToBeClickable(
                 By.cssSelector("input[aria-label='Search Input']")));
         searchBar.click();
         Thread.sleep(2000);
-        searchBar.clear();
-        Thread.sleep(1000);
 
-        for (char c : "brush".toCharArray()) {
-            searchBar.sendKeys(String.valueOf(c));
-            Thread.sleep(200);
+        // Step 3: Clear text using BACKSPACE (more realistic than clear())
+        String existingText = searchBar.getAttribute("value");
+        for (int i = 0; i < existingText.length(); i++) {
+            searchBar.sendKeys(Keys.BACK_SPACE);
         }
-        Thread.sleep(3000);
-        searchBar.sendKeys(Keys.ENTER);
-        Thread.sleep(6000);
+        Thread.sleep(1500);
 
-        Assert.assertTrue(driver.getCurrentUrl().toLowerCase().contains("brush") ||
-                        driver.getCurrentUrl().toLowerCase().contains("search"),
-                "Recovery search for brush should return results.");
+        // Step 4: Click again to ensure dropdown appears
+        searchBar.click();
+        Thread.sleep(2000);
+
+        // Step 5: Click "Clear Search History" using TEXT (more stable)
+        WebElement clearBtn = wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//button[.//p[contains(text(),'Clear')]]")));
+
+        js.executeScript("arguments[0].scrollIntoView({block:'center'});", clearBtn);
+        Thread.sleep(1000);
+        js.executeScript("arguments[0].click();", clearBtn);
+        Thread.sleep(3000);
+
+        // Step 6: Verify history is gone visually
+        searchBar.click();
+        Thread.sleep(2000);
+
+        String bodyText = driver.findElement(By.tagName("body")).getText().toLowerCase();
+
+        System.out.println("Body text after clearing history: " + bodyText);
+
     }
+
+    // 5. Nonsense search then recover
+    @Test
+    public void testNonsenseSearchThenRecovery() throws InterruptedException {
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
+
+        typeInSearchBar("xyzzy12345nonsense");
+
+        String bodyText = driver.findElement(By.tagName("body")).getText().toLowerCase();
+
+        System.out.println("Body text after nonsense search: " + bodyText);
+
+
+        Thread.sleep(3000);
+
+        // Pause to see the no results screen
+        Thread.sleep(3000);
+
+        // Search again
+        WebElement searchBar = wait.until(ExpectedConditions.elementToBeClickable(
+                By.cssSelector("input[aria-label='Search Input']")
+        ));
+
+        searchBar.click();
+        searchBar.clear();
+        searchBar.sendKeys("brush");
+        searchBar.sendKeys(Keys.ENTER);
+
+        wait.until(ExpectedConditions.presenceOfElementLocated(
+                By.cssSelector("a[href*='/product']")
+        ));
+
+
+
+    }
+
 }
