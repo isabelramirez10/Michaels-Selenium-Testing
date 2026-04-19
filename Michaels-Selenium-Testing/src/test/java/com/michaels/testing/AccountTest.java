@@ -35,11 +35,11 @@ public class AccountTest extends ERBaseTest {
         // Fill in credentials
         WebElement emailField = wait.until(ExpectedConditions.elementToBeClickable(By.id("email")));
         emailField.clear();
-        emailField.sendKeys(TEST_EMAIL);
+        emailField.sendKeys("erocha3976@eagle.fgcu.edu");
 
         WebElement passwordField = wait.until(ExpectedConditions.elementToBeClickable(By.id("password")));
         passwordField.clear();
-        passwordField.sendKeys(TEST_PASSWORD);
+        passwordField.sendKeys("SoftwareTesting123");
 
         // First click — may trigger bot challenge
         jsClick(driver.findElement(By.xpath("//button[@type='submit']")));
@@ -79,7 +79,7 @@ public class AccountTest extends ERBaseTest {
 
         WebElement emailField = wait.until(ExpectedConditions.elementToBeClickable(By.id("email")));
         emailField.clear();
-        emailField.sendKeys(TEST_EMAIL);
+        emailField.sendKeys("erocha3976@eagle.fgcu.edu");
 
         WebElement passwordField = wait.until(ExpectedConditions.elementToBeClickable(By.id("password")));
         passwordField.clear();

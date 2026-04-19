@@ -9,12 +9,11 @@
             <class name="com.michaels.testing.SearchTest"/>
             <class name="com.michaels.testing.ProductPageTest"/>
             <class name="com.michaels.testing.CartTest"/>
-            <!--
             <class name="com.michaels.testing.NavigationTest"/>
             <class name="com.michaels.testing.AccountTest"/>
             <class name="com.michaels.testing.StoreLocatorTest"/>
-            <class name="com.michaels.testing.CheckoutFlowTest"/>
-            -->
+            <class name="com.michaels.testing.CheckoutTest"/>
+
         </classes>
     </test>
 
