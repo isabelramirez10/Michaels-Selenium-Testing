@@ -12,7 +12,7 @@
             <class name="com.michaels.testing.NavigationTest"/>
             <class name="com.michaels.testing.AccountTest"/>
             <class name="com.michaels.testing.StoreLocatorTest"/>
-            <class name="com.michaels.testing.CheckoutTest"/>
+            <class name="com.michaels.testing.MichaelsRewardsTest"/>
 
         </classes>
     </test>
