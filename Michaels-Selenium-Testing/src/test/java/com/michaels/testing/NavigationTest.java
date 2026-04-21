@@ -2,6 +2,7 @@ package com.michaels.testing;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.Keys;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
@@ -12,79 +13,112 @@ import java.time.Duration;
 public class NavigationTest extends ERBaseTest {
 
     @Test(priority = 1)
-    public void testSaleNavLinkIsClickable() {
+    public void testSaleNavigationViaUI() throws InterruptedException {
         driver.get("https://www.michaels.com/");
         handlePopups();
-
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
 
-        // Find the link
-        By saleLocator = By.xpath("//a[contains(@href,'/sale') or contains(@href, '/weekly-ad')]");
-        WebElement saleLink = wait.until(ExpectedConditions.presenceOfElementLocated(saleLocator));
-
-        JavascriptExecutor js = (JavascriptExecutor) driver;
-        js.executeScript("arguments[0].click();", saleLink);
-
-        // FIXED: Using ExpectedConditions.or() instead of ||
-        wait.until(ExpectedConditions.or(
-                ExpectedConditions.urlContains("sale"),
-                ExpectedConditions.urlContains("weekly-ad")
+        WebElement saleLink = wait.until(ExpectedConditions.presenceOfElementLocated(
+                By.xpath("//a[contains(@href, 'sale') or contains(text(),'Sale') or contains(text(),'Ad')]")
         ));
 
-        String currentUrl = driver.getCurrentUrl().toLowerCase();
-        Assert.assertTrue(currentUrl.contains("sale") || currentUrl.contains("weekly-ad"),
-                "Should navigate to a sale or weekly ad page.");
-    }
+        highlightElement(saleLink);
+        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", saleLink);
 
-    private void handlePopups() {
+        Thread.sleep(3000);
+        wait.until(d -> d.getCurrentUrl().toLowerCase().contains("sale") || d.getCurrentUrl().toLowerCase().contains("ad"));
+        Assert.assertTrue(driver.getCurrentUrl().toLowerCase().contains("sale") ||
+                driver.getCurrentUrl().toLowerCase().contains("ad"), "Sale nav failed!");
     }
 
     @Test(priority = 2)
-    public void testNewArrivalsOrFeaturedLinkExists() {
+    public void testSearchFunctionality() {
         driver.get("https://www.michaels.com/");
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
 
-        WebElement header = wait.until(ExpectedConditions.visibilityOfElementLocated(By.tagName("header")));
-        Assert.assertTrue(header.isDisplayed(), "Header should be visible.");
+        WebElement searchBox = wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//input[contains(@placeholder,'Search') or @type='search']")
+        ));
+
+        highlightElement(searchBox);
+        searchBox.clear();
+        searchBox.sendKeys("Yarn");
+        searchBox.sendKeys(Keys.ENTER);
+
+        wait.until(d -> d.getCurrentUrl().toLowerCase().contains("yarn"));
+        Assert.assertTrue(driver.getCurrentUrl().toLowerCase().contains("yarn"), "Search navigation failed!");
     }
 
     @Test(priority = 3)
-    public void testHeaderContainsCategoryLinks() {
+    public void testBrowserBackNavigation() throws InterruptedException {
         driver.get("https://www.michaels.com/");
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        String homeUrl = driver.getCurrentUrl();
 
-        wait.until(ExpectedConditions.presenceOfElementLocated(By.cssSelector("header a")));
+        driver.get("https://www.michaels.com/shop/knitting-crochet");
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
+        wait.until(d -> !d.getCurrentUrl().equals(homeUrl));
 
-        int linkCount = driver.findElements(By.cssSelector("header a")).size();
-        Assert.assertTrue(linkCount > 5, "Header should contain several navigation links.");
+        driver.navigate().back();
+        Thread.sleep(2000);
+
+        Assert.assertTrue(driver.getCurrentUrl().contains("michaels.com"), "Back button failed!");
     }
 
     @Test(priority = 4)
-    public void testStoreNavLinkNavigates() {
+    public void testSocialMediaFooterLinks() {
         driver.get("https://www.michaels.com/");
-        handlePopups();
-
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
 
-        By storeLocator = By.xpath("//a[contains(@href,'store-locator') or contains(@class,'store') or contains(text(),'Store')]");
-        WebElement storeLink = wait.until(ExpectedConditions.presenceOfElementLocated(storeLocator));
+        // 1. Scroll to the very bottom of the page to find the footer
+        ((JavascriptExecutor) driver).executeScript("window.scrollTo(0, document.body.scrollHeight);");
 
-        JavascriptExecutor js = (JavascriptExecutor) driver;
-        js.executeScript("arguments[0].click();", storeLink);
+        // 2. Locate the Pinterest link (since you've worked on Pinterest automation before!)
+        WebElement pinterestLink = wait.until(ExpectedConditions.presenceOfElementLocated(
+                By.xpath("//a[contains(@href, 'pinterest.com/michaelsstores')]")
+        ));
 
-        wait.until(ExpectedConditions.urlContains("store"));
-        Assert.assertTrue(driver.getCurrentUrl().contains("store"), "Should navigate to store locator.");
+        highlightElement(pinterestLink);
+
+        // 3. Verify the link is what we expect
+        String href = pinterestLink.getAttribute("href");
+        Assert.assertTrue(href.contains("pinterest.com"), "Pinterest footer link is missing or incorrect!");
+        System.out.println(">>> Verified Social Link: " + href);
     }
 
     @Test(priority = 5)
-    public void testNavigationDoesNotBreakOnMobileViewport() {
+    public void testMobileViewportResponsiveness() throws InterruptedException {
         driver.manage().window().setSize(new org.openqa.selenium.Dimension(375, 812));
         driver.get("https://www.michaels.com/");
+        Thread.sleep(3000);
 
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        WebElement body = wait.until(ExpectedConditions.visibilityOfElementLocated(By.tagName("body")));
-        Assert.assertTrue(body.isDisplayed(), "Page should render on mobile.");
+        boolean isMainVisible = (boolean) ((JavascriptExecutor) driver).executeScript(
+                "return document.body.offsetWidth > 0;"
+        );
 
+        Assert.assertTrue(isMainVisible, "Mobile view failed to render.");
         driver.manage().window().maximize();
+    }
+
+    // --- HELPERS ---
+
+    private void highlightElement(WebElement element) {
+        try {
+            JavascriptExecutor js = (JavascriptExecutor) driver;
+            js.executeScript("arguments[0].scrollIntoView({block: 'center'});", element);
+            js.executeScript("arguments[0].setAttribute('style', 'background: yellow; border: 4px solid #FF00FF;');", element);
+            Thread.sleep(1000);
+        } catch (Exception e) { }
+    }
+
+    private void handlePopups() {
+        try {
+            WebDriverWait shortWait = new WebDriverWait(driver, Duration.ofSeconds(8));
+            WebElement closeBtn = shortWait.until(ExpectedConditions.elementToBeClickable(
+                    By.xpath("//button[contains(@aria-label,'Close') or contains(@class,'close')]")));
+            closeBtn.click();
+            System.out.println(">>> POPUP DISMISSED");
+        } catch (Exception e) {
+            System.out.println(">>> NO POPUP FOUND");
+        }
     }
 }

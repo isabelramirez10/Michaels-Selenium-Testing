@@ -1,148 +1,92 @@
 package com.michaels.testing;
 
 import org.openqa.selenium.*;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.testng.Assert;
-import org.testng.annotations.Test;
+import org.testng.annotations.*;
+
 import java.time.Duration;
-import java.util.List;
+import java.util.Collections;
 
-public class StoreLocatorTest extends ERBaseTest {
+public class StoreLocatorTest {
+    WebDriver driver;
+    WebDriverWait wait;
+    private final String LOCATOR_URL = "https://www.michaels.com/store-locator";
 
-    // Helper: dismiss cookie/promo banners
-    private void handlePopups() {
-        try {
-            By closeBtn = By.cssSelector(
-                    "button[aria-label='Close'], .close-button, #onetrust-accept-btn-handler");
-            List<WebElement> buttons = driver.findElements(closeBtn);
-            if (!buttons.isEmpty() && buttons.get(0).isDisplayed()) {
-                buttons.get(0).click();
-                System.out.println("Banner dismissed.");
-            }
-        } catch (Exception ignored) {}
+    @BeforeClass
+    public void setUp() {
+        ChromeOptions options = new ChromeOptions();
+        options.addArguments("--disable-blink-features=AutomationControlled");
+        options.setExperimentalOption("excludeSwitches", Collections.singletonList("enable-automation"));
+        options.addArguments("window-size=1920,1080");
+        options.addArguments("user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36");
+
+        driver = new ChromeDriver(options);
+        wait = new WebDriverWait(driver, Duration.ofSeconds(15));
+        driver.get(LOCATOR_URL);
     }
 
     @Test(priority = 1)
-    public void testStoreLocatorPageLoads() {
-        driver.get(BASE_URL + "/store-locator");
-        handlePopups();
-
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
-        wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("body")));
-
-        // Assert actual page URL is correct
-        Assert.assertTrue(driver.getCurrentUrl().contains("michaels.com"),
-                "Store locator should be on the Michaels domain.");
-
-        // Assert page title is meaningful
-        String title = driver.getTitle();
-        Assert.assertFalse(title.isEmpty(), "Page title should not be empty.");
-        System.out.println("Page title: " + title);
+    public void testSelectState() {
+        WebElement floridaLink = wait.until(ExpectedConditions.elementToBeClickable(By.linkText("Florida")));
+        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", floridaLink);
+        floridaLink.click();
+        Assert.assertTrue(driver.getCurrentUrl().contains("fl"), "URL should update to Florida");
+        System.out.println("Test 1: Florida Selected");
     }
 
-    @Test(priority = 2)
-    public void testStoreLocatorContainsIframe() {
-        driver.get(BASE_URL + "/store-locator");
-
-        // Aggressively handle popups first
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
-        try {
-            WebElement acceptBtn = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.cssSelector("#onetrust-accept-btn-handler, button[aria-label='Close']," +
-                            " .cookie-accept, .accept-cookies")));
-            acceptBtn.click();
-            System.out.println("Cookie popup dismissed.");
-        } catch (TimeoutException ignored) {
-            System.out.println("No cookie popup found.");
-        }
-
-        // Give the iframe time to fully render after popup clears
-        try { Thread.sleep(4000); } catch (InterruptedException ignored) {}
-
-        // Wait for at least one iframe to appear in the DOM
-        wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("iframe")));
-        List<WebElement> iframes = driver.findElements(By.tagName("iframe"));
-
-        Assert.assertFalse(iframes.isEmpty(),
-                "Store locator page should contain at least one iframe element.");
-
-        // Find the first iframe with actual visible dimensions
-        WebElement visibleIframe = null;
-        for (WebElement iframe : iframes) {
-            int width = iframe.getSize().getWidth();
-            int height = iframe.getSize().getHeight();
-            System.out.println("Iframe found — size: " + width + "x" + height);
-            if (width > 0 && height > 0) {
-                visibleIframe = iframe;
-                break;
-            }
-        }
-
-        Assert.assertNotNull(visibleIframe,
-                "At least one iframe should have a visible (non-zero) size.");
-        Assert.assertTrue(visibleIframe.getSize().getWidth() > 0,
-                "Store locator iframe should have a visible width.");
-        Assert.assertTrue(visibleIframe.getSize().getHeight() > 0,
-                "Store locator iframe should have a visible height.");
+    @Test(priority = 2, dependsOnMethods = "testSelectState")
+    public void testSelectCity() {
+        WebElement esteroLink = wait.until(ExpectedConditions.elementToBeClickable(By.linkText("Estero")));
+        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", esteroLink);
+        esteroLink.click();
+        Assert.assertTrue(driver.getCurrentUrl().contains("estero"), "URL should update to Estero");
+        System.out.println("Test 2: Estero Selected");
     }
 
-    @Test(priority = 3)
-    public void testStoreLocatorPageHasHeading() {
-        driver.get(BASE_URL + "/store-locator");
-        handlePopups();
+    @Test(priority = 3, dependsOnMethods = "testSelectCity")
+    public void testSelectSpecificStore() {
+        WebElement specificStore = wait.until(ExpectedConditions.elementToBeClickable(
+                By.partialLinkText("8018 Mediterranean Dr")));
+        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", specificStore);
+        specificStore.click();
 
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
-
-        // Verify the page renders a heading (h1 or h2) related to store finding
-        WebElement heading = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                By.xpath("//h1 | //h2")));
-
-        Assert.assertTrue(heading.isDisplayed(),
-                "Store locator page should have a visible heading.");
-
-        String headingText = heading.getText().toLowerCase();
-        System.out.println("Heading found: " + heading.getText());
-
-        // Verify the heading is relevant to store finding
-        Assert.assertTrue(
-                headingText.contains("store") || headingText.contains("location")
-                        || headingText.contains("find") || headingText.contains("near"),
-                "Heading should relate to store/location finding. Found: " + heading.getText());
+        // Wait for the specific store page to load
+        wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("h1")));
+        Assert.assertTrue(driver.getPageSource().contains("33928"), "Zip code should be present");
+        System.out.println("Test 3: Specific Store Page Loaded");
     }
 
-    @Test(priority = 4)
-    public void testStoreLocatorPageTitle() {
-        driver.get(BASE_URL + "/store-locator");
+    @Test(priority = 4, dependsOnMethods = "testSelectSpecificStore")
+    public void testScrollInteraction() throws InterruptedException {
+        JavascriptExecutor js = (JavascriptExecutor) driver;
 
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
-        wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("body")));
+        // Scroll to bottom
+        js.executeScript("window.scrollTo(0, document.body.scrollHeight);");
+        Thread.sleep(1000); // Visual confirmation
 
-        String title = driver.getTitle();
-        Assert.assertFalse(title.isEmpty(),
-                "Store locator page should have a non-empty title.");
+        // Scroll to top
+        js.executeScript("window.scrollTo(0, 0);");
+        Thread.sleep(1000);
 
-        // Verify the title is relevant
-        Assert.assertTrue(
-                title.toLowerCase().contains("store") || title.toLowerCase().contains("michaels"),
-                "Title should reference store or Michaels. Got: " + title);
+        System.out.println("Test 4: Scroll Interaction Completed");
     }
 
-    @Test(priority = 5)
-    public void testStoreLocatorBodyIsVisible() {
-        driver.get(BASE_URL + "/store-locator");
+    @Test(priority = 5, dependsOnMethods = "testSelectSpecificStore")
+    public void testVerifyStoreInfo() {
+        // Verify that the Phone Number or Store Hours section is displayed
+        WebElement phoneSection = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.cssSelector(".LocationInfo-phone, .phone, [href^='tel:']")));
 
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
+        Assert.assertTrue(phoneSection.isDisplayed(), "Phone number should be visible to users");
+        System.out.println("Test 5: Store Information Verified");
+    }
 
-        // Verify body is present and rendered
-        WebElement body = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                By.tagName("body")));
-        Assert.assertTrue(body.isDisplayed(),
-                "The body of the store locator page should be visible.");
-
-        // Also verify the page has meaningful content — not a blank/error page
-        String bodyText = body.getText();
-        Assert.assertFalse(bodyText.trim().isEmpty(),
-                "Page body should contain visible text content.");
+    @AfterClass
+    public void tearDown() {
+        if (driver != null) driver.quit();
     }
 }
